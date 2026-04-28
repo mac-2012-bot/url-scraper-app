@@ -7,6 +7,7 @@ export interface ScrapingResult {
   timestamp: string;
   wordCount: number;
   charCount: number;
+  source?: string;
 }
 
 export interface ScrapingHistory {

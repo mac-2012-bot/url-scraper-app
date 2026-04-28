@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import * as Fi from 'react-icons/fi';
 import { scrapeUrl } from '../utils/scraper';
+import { altScrapeUrl } from '../utils/altScraper';
 import type { ScrapingResult } from '../types';
 
 const { FiSearch, FiAlertCircle } = Fi;
@@ -24,8 +25,17 @@ const ScraperForm: React.FC<ScraperFormProps> = ({ onScrape, isLoading }) => {
     }
 
     try {
+      // Tenta primeiro com scraping normal
       const result = await scrapeUrl(url);
-      onScrape(result);
+      
+      // Se deu Network Error, tenta a alternativa
+      if (result.status === 'error' && result.error?.includes('Network Error')) {
+        setError('⚠️ Network Error - Tentando alternativa web_fetch...');
+        const altResult = await altScrapeUrl(url);
+        onScrape(altResult);
+      } else {
+        onScrape(result);
+      }
     } catch (err) {
       setError('Erro ao fazer scraping do URL');
     }
