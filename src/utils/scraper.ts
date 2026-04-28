@@ -67,7 +67,7 @@ export const scrapeUrl = async (url: string): Promise<ScrapingResult> => {
     const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
     const charCount = content.length;
 
-    const endTime = new Date();
+    // endTime não usado, mas mantido para métricas futuras
 
     return {
       url,
