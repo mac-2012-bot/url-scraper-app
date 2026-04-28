@@ -119,7 +119,13 @@ export const scrapeUrl = async (url: string): Promise<ScrapingResult> => {
       } else if (status === 429) {
         errorMessage = '⚠️ Muitas requests (429 Too Many Requests) - Espera alguns minutos e tenta novamente.';
       } else if (error.code === 'ECONNABORTED') {
-        errorMessage = '⏱️ Timeout - O site demorou demasiado a responder (mais de 20 segundos).';
+        errorMessage = '⏱️ Timeout - O site demorou demasiado a responder (mais de 20 segundos). Tenta com um site mais simples.';
+      } else if (error.code === 'ERR_NETWORK') {
+        errorMessage = '🌐 Erro de rede (Network Error) - Verifica a tua conexão à internet ou tenta com outro site.';
+      } else if (error.code === 'ENOTFOUND') {
+        errorMessage = '🌐 Servidor não encontrado (ENOTFOUND) - O site pode estar offline ou o URL está incorreto.';
+      } else if (error.code === 'ECONNREFUSED') {
+        errorMessage = '🔌 Conexão recusada (ECONNREFUSED) - O servidor recusou a conexão. Tenta novamente.';
       } else {
         errorMessage = `🌐 Erro de rede: ${statusText} (Código: ${status})`;
       }
