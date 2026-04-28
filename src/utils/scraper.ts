@@ -17,15 +17,18 @@ export const scrapeUrl = async (url: string): Promise<ScrapingResult> => {
 
     const startTime = new Date();
     
-    // Fazer request com User-Agent aleatório
+    // Configuração mais robusta para evitar Network Errors
     const response = await axios.get(url, {
       headers: {
         'User-Agent': USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)],
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
       },
-      timeout: 10000,
+      timeout: 15000, // Aumentado de 10s para 15s
       maxRedirects: 5,
+      validateStatus: (status) => status < 500, // Aceita status 4xx também
     });
 
     const html = response.data;
@@ -58,11 +61,13 @@ export const scrapeUrl = async (url: string): Promise<ScrapingResult> => {
       .trim();
 
     // Remover scripts e estilos
-    $('script, style').remove();
+    $('script, style, noscript, iframe, img, svg').remove();
 
     // Contar palavras e caracteres
     const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
     const charCount = content.length;
+
+    const endTime = new Date();
 
     return {
       url,
@@ -77,14 +82,21 @@ export const scrapeUrl = async (url: string): Promise<ScrapingResult> => {
     console.error('Scraping error:', error);
     
     if (axios.isAxiosError(error)) {
+      const status = error.response?.status || 0;
+      const statusText = error.response?.statusText || error.message;
+      
       return {
         url,
         title: url,
         content: '',
         status: 'error',
-        error: error.response?.status
-          ? `HTTP ${error.response.status}: ${error.response.statusText}`
-          : error.message,
+        error: status === 403
+          ? '🔒 Acesso negado (403 Forbidden) - Tenta outro site ou verifica se o site bloqueia scraping'
+          : status === 404
+            ? '📍 URL não encontrado (404 Not Found)'
+            : status === 503
+              ? '🚧 Servidor indisponível (503 Service Unavailable)'
+              : `🌐 Erro de rede: ${statusText}`,
         timestamp: new Date().toISOString(),
         wordCount: 0,
         charCount: 0,
@@ -96,7 +108,7 @@ export const scrapeUrl = async (url: string): Promise<ScrapingResult> => {
       title: url,
       content: '',
       status: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : 'Erro desconhecido ao fazer scraping',
       timestamp: new Date().toISOString(),
       wordCount: 0,
       charCount: 0,
