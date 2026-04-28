@@ -14,19 +14,26 @@ export const browserScrapeUrl = async (url: string): Promise<ScrapingResult> => 
 
     const startTime = new Date();
 
-    // Usar fetch nativo do browser com modo 'cors' para contornar CORS
+    // Usar fetch nativo do browser com modo 'no-cors' para contornar CORS
+    // Timeout de 30 segundos para sites mais lentos
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     const response = await fetch(url, {
       method: 'GET',
-      mode: 'cors', // Modo cors para contornar CORS
+      mode: 'no-cors', // no-cors para contornar CORS de vez
+      signal: controller.signal,
       credentials: 'omit',
       headers: {
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept': '*/*',
         'Accept-Language': 'pt-PT,pt;q=0.9,en-US;q=0.8,en;q=0.7',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         'Cache-Control': 'no-cache',
       },
       redirect: 'follow',
     });
+
+    clearTimeout(timeoutId);
 
     // Verificar se a resposta é OK
     if (!response.ok) {
@@ -102,15 +109,26 @@ export const browserScrapeUrl = async (url: string): Promise<ScrapingResult> => 
     };
   } catch (error) {
     console.error('Browser fetch error:', error);
+    let errorMessage = '🌐 Erro de rede desconhecido';
+    
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        errorMessage = '⏱️ Timeout - O site demorou mais de 30 segundos a responder';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = '🌐 Failed to fetch - Verifica a tua conexão à internet';
+      } else if (error.message.includes('NetworkError')) {
+        errorMessage = '🌐 Network Error - Problema de rede. Verifica a internet ou tenta outro site.';
+      } else {
+        errorMessage = `🌐 Erro: ${error.message}`;
+      }
+    }
     
     return {
       url,
       title: url,
       content: '',
       status: 'error',
-      error: error instanceof Error
-        ? `🌐 Erro de rede: ${error.message}`
-        : '🌐 Erro desconhecido de rede',
+      error: errorMessage,
       timestamp: new Date().toISOString(),
       wordCount: 0,
       charCount: 0,
